@@ -44,7 +44,7 @@ Zaxcom, etc.), so it should work unmodified on files from those too.
 
 ## Using it
 
-1. Open `ixml-take-editor.html` in Chrome or Edge.
+1. Visit [https://alexloggedin.github.io/Simple-iXML-Editor/](https://alexloggedin.github.io/Simple-iXML-Editor/) in Chrome or Edge. (Note: You can also just download the index.html to use locally)
 2. Click **Open Folder** and pick the top-level folder containing your
    session's recordings (subfolders are scanned automatically). You'll be
    asked to grant read/write access — this is required so metadata edits
