@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIELD LOG — iXML Take Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#111216;
+    --panel:#1a1c21;
+    --panel-2:#202329;
+    --line:#33363d;
+    --text:#e8e6df;
+    --text-dim:#8b8d94;
+    --amber:#ffb547;
+    --amber-dim:#8a6a34;
+    --green:#6fcf7a;
+    --red:#e6604a;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .label{
+    font-family:'Barlow Condensed',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.09em;
+    font-weight:600;
+    color:var(--text-dim);
+    font-size:11px;
+  }
+  #app{display:flex;flex-direction:column;height:100vh;}
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;align-items:center;gap:16px;
+    padding:12px 18px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    flex-shrink:0;
+  }
+  header .brand{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    letter-spacing:0.12em;
+    font-size:18px;
+    color:var(--text);
+    text-transform:uppercase;
+  }
+  header .brand span{color:var(--amber);}
+  .btn{
+    font-family:'Barlow Condensed',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    font-weight:600;
+    font-size:12px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:8px 14px;
+    border-radius:var(--radius);
+    cursor:pointer;
+  }
+  .btn:hover{border-color:var(--amber-dim);color:var(--amber);}
+  .btn:disabled{opacity:0.35;cursor:not-allowed;}
+  .btn.primary{background:var(--amber);color:#1a1206;border-color:var(--amber);}
+  .btn.primary:hover{color:#1a1206;filter:brightness(1.08);}
+  .spacer{flex:1;}
+  #folderPath{color:var(--text-dim);font-size:12px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .filter-group{display:flex;align-items:center;gap:7px;}
+  .filter-group select{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:6px 8px;
+    border-radius:var(--radius);
+    max-width:160px;
+  }
+  .filter-group select:disabled{opacity:0.4;}
+
+  /* ---------- main layout ---------- */
+  main{flex:1;display:flex;min-height:0;}
+  #takeList{
+    width:340px;flex-shrink:0;
+    border-right:1px solid var(--line);
+    overflow-y:auto;
+    background:var(--panel);
+  }
+  #takeList .empty{padding:24px 18px;color:var(--text-dim);line-height:1.6;}
+  .take-row{
+    padding:10px 16px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .take-row:hover{background:var(--panel-2);}
+  .take-row.selected{background:#26221a;border-left:3px solid var(--amber);padding-left:13px;}
+  .take-row .top{display:flex;justify-content:space-between;align-items:baseline;}
+  .take-row .slate{font-weight:600;color:var(--text);}
+  .take-row .slate b{color:var(--amber);}
+  .take-row .meta{color:var(--text-dim);font-size:11px;}
+  .circle-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;}
+  .no-ixml-flag{color:var(--red);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;}
+
+  #detail{flex:1;overflow-y:auto;padding:24px 30px;}
+  #detail .placeholder{color:var(--text-dim);padding-top:60px;text-align:center;}
+
+  .slate-header{
+    display:flex;gap:28px;align-items:flex-end;
+    padding:16px 20px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    margin-bottom:22px;
+  }
+  .slate-field{display:flex;flex-direction:column;gap:2px;}
+  .slate-field .readout{font-size:26px;color:var(--amber);font-weight:500;letter-spacing:0.02em;}
+  .slate-field.small .readout{font-size:18px;}
+
+  form.meta-form{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin-bottom:26px;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field.full{grid-column:1 / -1;}
+  .field label{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:var(--text-dim);}
+  .field input[type=text], .field textarea{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:var(--radius);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+  }
+  .field input[type=text]:focus, .field textarea:focus{outline:none;border-color:var(--amber-dim);}
+  .field textarea{resize:vertical;min-height:52px;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;padding-top:22px;}
+  .checkbox-row input{width:16px;height:16px;accent-color:var(--amber);}
+
+  .file-table{width:100%;border-collapse:collapse;margin-bottom:26px;}
+  .file-table th{
+    text-align:left;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+    letter-spacing:0.07em;font-size:10.5px;color:var(--text-dim);
+    border-bottom:1px solid var(--line);padding:6px 8px;
+  }
+  .file-table td{padding:7px 8px;border-bottom:1px solid var(--line);font-size:12px;}
+  .file-table tr:last-child td{border-bottom:none;}
+  .file-table .mono{color:var(--text-dim);}
+
+  /* Track mute/unmute toggles: one big clickable icon button per audio
+     channel, laid out horizontally so a 3-6 track polyphonic take is easy
+     to scan and tap (not a cramped vertical checkbox list). */
+  .channel-monitor-row{display:flex;flex-wrap:wrap;gap:12px;}
+  .track-toggle{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    min-width:96px;min-height:80px;
+    padding:12px 16px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    color:var(--green);
+    cursor:pointer;
+    transition:border-color 0.1s ease;
+  }
+  .track-toggle:hover{border-color:var(--amber-dim);}
+  .track-toggle .track-toggle-icon{display:flex;line-height:0;}
+  .track-toggle .track-toggle-label{
+    font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:0.06em;
+    font-size:12.5px;color:var(--text);
+  }
+  .track-toggle.muted{color:var(--red);border-color:#4a2e2a;}
+  .track-toggle.muted .track-toggle-label{color:var(--text-dim);}
+.track-meter{
+    width:100%;display:flex;flex-direction:column;gap:4px;margin-top:2px;
+  }
+  .track-meter-bar{
+    height:6px;background:#262a30;border:1px solid var(--line);border-radius:1px;overflow:hidden;
+  }
+  .track-meter-fill{
+    width:0%;height:100%;background:var(--green);transition:none;
+  }
+  .track-meter-db{
+    font-size:10px;color:var(--text-dim);text-align:center;min-width:54px;
+  }
+
+  .transport{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 20px;margin-bottom:26px;
+  }
+  .transport .row{display:flex;align-items:center;gap:14px;}
+  .transport .time{font-size:12px;color:var(--text-dim);width:130px;text-align:right;}
+  #scrub{
+    flex:1;appearance:none;height:18px;background:transparent;cursor:pointer;
+  }
+  #scrub::-webkit-slider-runnable-track{
+    height:14px;border-radius:2px;
+    background:repeating-linear-gradient(90deg,var(--amber-dim) 0 3px, #262a30 3px 5px);
+  }
+  #scrub::-webkit-slider-thumb{
+    appearance:none;width:3px;height:22px;margin-top:-4px;background:var(--amber);box-shadow:0 0 4px var(--amber);
+  }
+  #scrub::-moz-range-track{height:14px;border-radius:2px;background:#262a30;}
+  #scrub::-moz-range-thumb{width:3px;height:22px;background:var(--amber);border:none;}
+
+  .actions{display:flex;gap:10px;align-items:center;}
+  #saveStatus{color:var(--text-dim);font-size:11.5px;}
+  #saveStatus.ok{color:var(--green);}
+  #saveStatus.err{color:var(--red);}
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:6px 18px;
+    font-size:11px;color:var(--text-dim);
+    background:var(--panel);
+    flex-shrink:0;
+    min-height:18px;
+  }
+
+  /* ---------- CSV field-chooser modal ---------- */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;
+    background:rgba(6,6,8,0.72);
+    align-items:center;justify-content:center;
+    z-index:100;
+  }
+  .modal{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    width:min(440px, 92vw);
+    max-height:82vh;
+    display:flex;flex-direction:column;
+  }
+  .modal-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;border-bottom:1px solid var(--line);
+  }
+  .modal-header .label{font-size:12px;}
+  .modal-footer{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 18px;border-top:1px solid var(--line);
+  }
+  #csvFieldList{overflow-y:auto;padding:8px 18px;}
+  .csv-field-row{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 0;border-bottom:1px solid var(--line);
+  }
+  .csv-field-row:last-child{border-bottom:none;}
+  .csv-field-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber);flex-shrink:0;}
+  .csv-field-label{flex:1;font-size:13px;}
+  .csv-order-btns{display:flex;gap:4px;}
+  .btn.tiny{padding:3px 8px;font-size:11px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">FIELD<span>LOG</span></div>
+    <button class="btn primary" id="openFolderBtn">Open Folder</button>
+    <span id="folderPath"></span>
+
+    <div class="filter-group">
+      <label class="label" for="filterProject">Project</label>
+      <select id="filterProject" disabled><option value="">All</option></select>
+    </div>
+    <div class="filter-group">
+      <label class="label" for="filterScene">Scene</label>
+      <select id="filterScene" disabled><option value="">All</option></select>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn" id="rescanBtn" disabled>Rescan</button>
+    <button class="btn" id="exportBtn" disabled>Export CSV Sound Report</button>
+  </header>
+  <main>
+    <div id="takeList"><div class="empty">Open a folder of Zoom recordings to list takes here, grouped by FAMILY_UID for polyphonic sets.</div></div>
+    <div id="detail"><div class="placeholder">Select a take on the left once a folder is loaded.</div></div>
+  </main>
+  <footer id="status">Ready.</footer>
+</div>
+
+<div class="modal-overlay" id="csvModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="label">Choose &amp; order CSV columns</div>
+      <button class="btn tiny" id="csvModalClose">Close</button>
+    </div>
+    <div id="csvFieldList"></div>
+    <div class="modal-footer">
+      <button class="btn" id="csvResetBtn">Reset to Default</button>
+      <div class="spacer"></div>
+      <button class="btn" id="csvCancelBtn">Cancel</button>
+      <button class="btn primary" id="csvConfirmExportBtn">Export CSV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// FIELD LOG — iXML Take Editor
+// ============================================================
+//
+// A single-file, dependency-free tool for reading, editing, and previewing
+// the iXML metadata that field recorders (this was built against a Zoom F4,
+// but the iXML schema is shared across most BWF-writing recorders) embed
+// inside WAV files.
+//
+// No npm packages, no build step, no external JS libraries: every RIFF
+// chunk read/write is done by hand against raw bytes (see the "RIFF / iXML
+// chunk-level I/O" section below), and folder access is done through the
+// browser's native File System Access API (Chromium-based browsers only —
+// Chrome or Edge).
+//
+// High-level flow:
+//   1. User picks a folder                      -> openFolder()
+//   2. Every .wav under it is scanned            -> scanAndGroup()
+//   3. Files that share a FAMILY_UID (polyphonic -> grouped into "takes"
+//      multi-file takes) are grouped together       (one row in the UI)
+//   4. Selecting a take renders an editable form  -> renderDetail()
+//      plus a synced multi-channel audio player      loadTakeAudio() / playFrom()
+//   5. Saving writes the PROJECT/SCENE/TAKE/etc.  -> saveTake()
+//      iXML fields back into every file in the take
+//   6. Optional Project/Scene filters narrow      -> state.filters +
+//      which takes are shown and exported            getFilteredTakes()
+//   7. Export builds a CSV "sound report" from    -> exportCSV() +
+//      user-chosen, user-ordered columns             the CSV modal
+//
+// For a deeper walkthrough of each section, see CODE_DOCS.md alongside
+// this file. For what the tool does and how to use it, see README.md.
+// ============================================================
+
+// Inline SVG icons for the per-track mute/unmute buttons (see
+// renderChannelMonitor). Kept as plain strings rather than <img> tags so
+// they inherit color via `currentColor` and need no external asset files —
+// the whole tool stays a single portable .html file.
+const SPEAKER_ICON_SVG = `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/>
+  <path d="M16.2 8.8a5 5 0 0 1 0 6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M18.8 6.2a9 9 0 0 1 0 11.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+</svg>`;
+
+const MUTED_ICON_SVG = `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/>
+  <path d="M15.5 9.5l5 5M20.5 9.5l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>`;
+
+// ============================================================
+// RIFF / iXML chunk-level I/O (no external libraries)
+// ============================================================
+
+// ============================================================
+// RIFF / iXML chunk-level I/O (no external libraries)
+// ============================================================
+//
+// A BWF/WAV file is a RIFF container: a 12-byte header ("RIFF", a 4-byte
+// total size, "WAVE") followed by a flat sequence of chunks, each of the
+// form: 4-byte ASCII chunk ID, 4-byte little-endian data size, then that
+// many bytes of data, padded with one extra zero byte if the size is odd
+// (RIFF chunks always start on an even byte boundary).
+//
+// Everything in this section works directly against a browser `File`
+// object using `.slice()` + `.arrayBuffer()`, which lets us read just the
+// small chunk headers (a handful of bytes each) without ever loading a
+// multi-gigabyte audio payload into JS memory — important since field
+// recordings can run for hours. Writes work the same way: `writeIXMLToFile`
+// rebuilds the file as a `Blob` made of *slices* of the original file plus
+// the new chunk bytes, so the browser streams the unchanged audio data
+// straight to disk instead of us buffering it.
+
+/** Decode `length` bytes starting at `offset` in a Uint8Array as ASCII text (used only for 4-character chunk IDs like "RIFF"/"iXML"). */
+function asciiOf(bytes, offset, length){
+  let s = '';
+  for (let i = 0; i < length; i++) s += String.fromCharCode(bytes[offset + i]);
+  return s;
+}
+
+/** Read `length` bytes at `offset` from a File/Blob without touching the rest of the file. */
+async function readBytes(file, offset, length){
+  const buf = await file.slice(offset, offset + length).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+// Walk top-level RIFF chunks reading only small headers, never the bulk audio data.
+/**
+ * Walk every top-level RIFF chunk in a WAV file and return their positions.
+ * Only reads the 12-byte RIFF header plus each chunk's 8-byte header (ID +
+ * size) — the chunk *data* itself is never read here, so this is cheap even
+ * on a multi-hour recording.
+ *
+ * @param {File} file
+ * @returns {Promise<Array<{id: string, offset: number, dataOffset: number, size: number}>>}
+ *   `offset` is where the chunk's 4-byte ID starts; `dataOffset` is where
+ *   its data starts (`offset + 8`); `size` is the data length in bytes
+ *   (not including the header or padding byte).
+ * @throws if the file isn't a RIFF/WAVE container.
+ */
+async function findChunkOffsets(file){
+  const header = await readBytes(file, 0, 12);
+  if (asciiOf(header, 0, 4) !== 'RIFF' || asciiOf(header, 8, 4) !== 'WAVE') {
+    throw new Error('Not a RIFF/WAVE file');
+  }
+  const chunks = [];
+  let offset = 12;
+  while (offset + 8 <= file.size) {
+    const h = await readBytes(file, offset, 8);
+    const id = asciiOf(h, 0, 4);
+    const size = new DataView(h.buffer).getUint32(4, true);
+    chunks.push({ id, offset, dataOffset: offset + 8, size });
+    offset = offset + 8 + size + (size % 2);
+  }
+  return chunks;
+}
+
+/**
+ * Locate and read the `iXML` chunk's text content, if the file has one.
+ * Trims the recorder's null-byte padding (see comment inline) before
+ * returning so callers can hand the text straight to an XML parser.
+ *
+ * @param {File} file
+ * @returns {Promise<{text: string|null, chunk: object|null}>}
+ *   `text` is null if the file has no `iXML` chunk at all. `chunk` is the
+ *   raw chunk descriptor from findChunkOffsets (needed later by
+ *   writeIXMLToFile to know what byte range to replace).
+ */
+async function extractIXMLTextLazy(file){
+  const chunks = await findChunkOffsets(file);
+  const chunk = chunks.find(c => c.id === 'iXML');
+  if (!chunk) return { text: null, chunk: null };
+  const bytes = await readBytes(file, chunk.dataOffset, chunk.size);
+  let text = new TextDecoder('utf-8').decode(bytes);
+  // Many recorders (Zoom included) pre-allocate the iXML chunk larger than the
+  // actual XML and pad the remainder with null bytes, presumably so later
+  // in-place metadata edits don't need to resize the file. A strict XML
+  // parser treats that trailing padding as invalid content and fails the
+  // whole parse, so trim everything after the closing root tag first.
+  const closeTag = '</BWFXML>';
+  const endIdx = text.lastIndexOf(closeTag);
+  if (endIdx !== -1) {
+    text = text.slice(0, endIdx + closeTag.length);
+  } else {
+    // Unexpected root element name — fall back to stripping trailing NULs
+    // and whitespace so a best-effort parse is still attempted.
+    text = text.replace(/[\u0000\s]+$/, '');
+  }
+  return { text, chunk };
+}
+
+/** Build the raw bytes of a complete `iXML` chunk (4-byte ID + 4-byte LE length + UTF-8 XML + optional pad byte) ready to splice into a file. */
+function buildIXMLChunkBlob(xmlText){
+  const encoder = new TextEncoder();
+  const xmlBytes = encoder.encode(xmlText);
+  const pad = xmlBytes.length % 2 === 1 ? 1 : 0;
+  const header = new Uint8Array(8);
+  header.set([0x69,0x58,0x4d,0x4c], 0); // 'iXML'
+  new DataView(header.buffer).setUint32(4, xmlBytes.length, true);
+  const parts = [header, xmlBytes];
+  if (pad) parts.push(new Uint8Array([0]));
+  return new Blob(parts);
+}
+
+/**
+ * Replace (or, if the file had none, append) the `iXML` chunk in a WAV file
+ * and write the result back to disk — without ever loading the audio
+ * payload into JS memory.
+ *
+ * How: the new file is assembled as a `Blob` built from *slices* of the
+ * original file (before the old chunk, after it) plus the freshly-built
+ * iXML chunk bytes in between. Slicing a File/Blob doesn't copy data into
+ * memory; the browser streams the pieces straight through on write. Only
+ * the 12-byte RIFF header is actually read into memory, so its total-size
+ * field can be patched to match the new file length.
+ *
+ * @param {FileSystemFileHandle} fileHandle handle to write the result to
+ * @param {File} file current contents of that file (for slicing)
+ * @param {string} newXmlText the full XML document to store
+ * @param {object|null} existingChunk chunk descriptor from findChunkOffsets, or null if the file had no iXML chunk yet
+ */
+async function writeIXMLToFile(fileHandle, file, newXmlText, existingChunk){
+  const newChunkBlob = buildIXMLChunkBlob(newXmlText);
+  let beforeBlob, afterBlob;
+  if (existingChunk) {
+    const oldConsumed = 8 + existingChunk.size + (existingChunk.size % 2);
+    beforeBlob = file.slice(0, existingChunk.offset);
+    afterBlob = file.slice(existingChunk.offset + oldConsumed);
+  } else {
+    beforeBlob = file.slice(0, file.size);
+    afterBlob = new Blob([]);
+  }
+  const riffHeaderBuf = await beforeBlob.slice(0, 12).arrayBuffer();
+  const headerView = new DataView(riffHeaderBuf);
+  const newTotalSize = beforeBlob.size + newChunkBlob.size + afterBlob.size;
+  headerView.setUint32(4, newTotalSize - 8, true);
+  const patchedHeaderBlob = new Blob([riffHeaderBuf]);
+  const restOfBeforeBlob = beforeBlob.slice(12);
+  const finalBlob = new Blob([patchedHeaderBlob, restOfBeforeBlob, newChunkBlob, afterBlob]);
+
+  const writable = await fileHandle.createWritable();
+  await writable.write(finalBlob);
+  await writable.close();
+}
+
+// ============================================================
+// iXML (BWFXML) tag helpers
+// ============================================================
+
+// ============================================================
+// iXML (BWFXML) tag helpers
+// ============================================================
+//
+// The iXML chunk is just XML with a `<BWFXML>` root element. These helpers
+// work against a parsed `Document` (from DOMParser) rather than the raw
+// string, and are shared by both the "read metadata for the UI" path and
+// the "write edited metadata back to disk" path.
+
+/** Parse iXML text into a Document, or return null if it isn't well-formed XML. */
+function parseIXMLDoc(xmlText){
+  try{
+    const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) return null;
+    return doc;
+  } catch(e){ return null; }
+}
+
+/** Build a minimal valid iXML document, for files that don't have one yet. */
+function makeEmptyIXMLDoc(){
+  return parseIXMLDoc('<?xml version="1.0" encoding="UTF-8"?><BWFXML><IXML_VERSION>1.27</IXML_VERSION></BWFXML>');
+}
+
+/** Read a top-level tag's text content (e.g. getTag(doc, 'SCENE')), or '' if absent. Returns the *first* matching element in document order. */
+function getTag(doc, tagName){
+  const el = doc.getElementsByTagName(tagName)[0];
+  return el ? el.textContent.trim() : '';
+}
+
+/** Set (creating if necessary) a top-level tag directly under <BWFXML>. Existing nested tags of the same name elsewhere in the document (e.g. <NOTE> inside <SPEED>) are left alone since only the first match is touched. */
+function setTag(doc, tagName, value){
+  const root = doc.getElementsByTagName('BWFXML')[0];
+  let el = doc.getElementsByTagName(tagName)[0];
+  if (!el){
+    el = doc.createElement(tagName);
+    root.appendChild(el);
+  }
+  el.textContent = value;
+}
+
+/** Return this file's FILE_SET/FAMILY_UID, the ID Zoom (and others) use to tie together files that belong to the same take, or null if absent/standalone. */
+function getFamilyUID(doc){
+  const fileSet = doc.getElementsByTagName('FILE_SET')[0];
+  if (!fileSet) return null;
+  const uid = fileSet.getElementsByTagName('FAMILY_UID')[0];
+  const v = uid ? uid.textContent.trim() : '';
+  return v || null;
+}
+
+// Returns every <TRACK> in the file's TRACK_LIST, not just the first —
+// Zoom recorders frequently write one interleaved polyphonic WAV per take
+// (e.g. 3ch: BOOM / MIC A / MIC B) rather than one mono file per track.
+function getTracks(doc){
+  const trackEls = Array.from(doc.getElementsByTagName('TRACK'));
+  const tracks = trackEls.map(t => {
+    const chEl = t.getElementsByTagName('CHANNEL_INDEX')[0];
+    const ilEl = t.getElementsByTagName('INTERLEAVE_INDEX')[0];
+    const nameEl = t.getElementsByTagName('NAME')[0];
+    return {
+      channelIndex: chEl ? parseInt(chEl.textContent.trim(), 10) : null,
+      interleaveIndex: ilEl ? parseInt(ilEl.textContent.trim(), 10) : null,
+      name: nameEl ? nameEl.textContent.trim() : '',
+    };
+  });
+  // INTERLEAVE_INDEX (1-based) is the actual position of this track within the
+  // decoded audio buffer's channels, so array position after sorting on it
+  // lines up with AudioBuffer channel index.
+  tracks.sort((a, b) => (a.interleaveIndex ?? 999) - (b.interleaveIndex ?? 999));
+  return tracks;
+}
+
+function serializeDoc(doc){
+  const xml = new XMLSerializer().serializeToString(doc.documentElement);
+  return '<?xml version="1.0" encoding="UTF-8"?>' + xml;
+}
+
+// ============================================================
+// Folder scan + take grouping
+// ============================================================
+
+/** Recursively walk a directory handle and return every .wav/.bwf file found, with its relative path (e.g. "Session1/SCENE_1A-T004.WAV"). */
+async function scanDirectory(dirHandle, path = ''){
+  const files = [];
+  for await (const [name, handle] of dirHandle.entries()){
+    const fullPath = path ? `${path}/${name}` : name;
+    if (handle.kind === 'directory'){
+      files.push(...await scanDirectory(handle, fullPath));
+    } else if (/\.(wav|bwf)$/i.test(name)){
+      files.push({ handle, path: fullPath, name });
+    }
+  }
+  return files;
+}
+
+/** Load one file's per-file metadata: its iXML tracks and FAMILY_UID. Never throws — a corrupt/non-BWF file just comes back with hasIXML: false and empty tracks, plus an `error` message, so the scan keeps going rather than aborting on one bad file. */
+async function loadFileMeta(entry){
+  const file = await entry.handle.getFile();
+  let text = null, chunk = null, error = null;
+  try {
+    const r = await extractIXMLTextLazy(file);
+    text = r.text; chunk = r.chunk;
+  } catch(e){ error = e.message; }
+  let doc = text ? parseIXMLDoc(text) : null;
+  const hasIXML = !!doc;
+  if (!doc) doc = makeEmptyIXMLDoc();
+  return {
+    handle: entry.handle,
+    path: entry.path,
+    name: entry.name,
+    file,
+    error,
+    hasIXML,
+    familyUID: getFamilyUID(doc),
+    tracks: getTracks(doc),   // one entry per interleaved channel in this file
+    channelMuted: [],         // populated once audio is decoded (one flag per channel)
+  };
+}
+
+/** Pull the fields that are shared across every file in a take (Project/Scene/Take/Tape/Note/Circled), from one file's parsed iXML doc. */
+function extractSharedFields(doc){
+  return {
+    project: getTag(doc, 'PROJECT'),
+    scene: getTag(doc, 'SCENE'),
+    take: getTag(doc, 'TAKE'),
+    tape: getTag(doc, 'TAPE'),
+    note: getTag(doc, 'NOTE'),
+    circled: /^(true|1|yes)$/i.test(getTag(doc, 'CIRCLED')),
+  };
+}
+
+/**
+ * Scan a folder and group its WAV files into "takes".
+ *
+ * Grouping key: FILE_SET/FAMILY_UID when present (this is how a
+ * polyphonic take that's split across several mono files, or a single
+ * interleaved multi-channel file, gets its files tied together);
+ * otherwise each standalone file becomes its own single-file take, keyed
+ * by its path so it never collides with another file's key.
+ *
+ * @param {FileSystemDirectoryHandle} dirHandle
+ * @param {(done: number, total: number) => void} [onProgress] optional progress callback, called after each file
+ * @returns {Promise<Array<object>>} array of take objects: { key, familyUID, project, scene, take, tape, note, circled, files: [...] }
+ */
+async function scanAndGroup(dirHandle, onProgress){
+  const entries = await scanDirectory(dirHandle);
+  const groups = new Map();
+  let done = 0;
+  for (const entry of entries){
+    const meta = await loadFileMeta(entry);
+    // re-derive the shared fields doc for grouping defaults (cheap re-parse from the same text we already have via meta.file)
+    let doc = null;
+    try {
+      const { text } = await extractIXMLTextLazy(meta.file);
+      doc = text ? parseIXMLDoc(text) : null;
+    } catch(e){ /* ignore */ }
+    if (!doc) doc = makeEmptyIXMLDoc();
+    const shared = extractSharedFields(doc);
+    const key = meta.familyUID || `standalone:${meta.path}`;
+    if (!groups.has(key)){
+      groups.set(key, { key, familyUID: meta.familyUID, files: [], ...shared });
+    }
+    groups.get(key).files.push(meta);
+    done++;
+    if (onProgress) onProgress(done, entries.length);
+  }
+  return Array.from(groups.values());
+}
+
+// ============================================================
+// CSV "sound report" field catalogue
+// ============================================================
+//
+// Every column the CSV exporter can produce, in a data-driven form: an id
+// (used internally + for ordering/checked-state), a display label (shown
+// in the field-chooser modal and used as the CSV header), and a getter
+// that pulls the value out of a `take` object. Adding a new exportable
+// field later just means adding one entry here — the modal and the export
+// function both read from this list, nothing else needs to change.
+const CSV_FIELD_DEFS = [
+  { id: 'project',    label: 'Project',     get: t => t.project || '' },
+  { id: 'scene',      label: 'Scene',       get: t => t.scene || '' },
+  { id: 'take',       label: 'Take',        get: t => t.take || '' },
+  { id: 'tracknames', label: 'Track Names', get: t => t.files.map(f => f.tracks.map(tr => tr.name).filter(Boolean).join('/')).filter(Boolean).join(' | ') },
+  { id: 'note',       label: 'Notes',       get: t => t.note || '' },
+  { id: 'tape',       label: 'Tape',        get: t => t.tape || '' },
+  { id: 'circled',    label: 'Circled',     get: t => t.circled ? 'TRUE' : 'FALSE' },
+  { id: 'fileCount',  label: 'File Count',  get: t => t.files.length },
+  { id: 'files',      label: 'File Paths',  get: t => t.files.map(f => f.path).join(' | ') },
+  { id: 'familyUID',  label: 'Family UID',  get: t => t.familyUID || '' },
+];
+const CSV_FIELD_MAP = Object.fromEntries(CSV_FIELD_DEFS.map(f => [f.id, f]));
+
+// The requested default report shape: project | scene | take | tracknames | notes.
+// Fields not in this list still appear in the modal (unchecked) so they're
+// discoverable, ordered after the defaults.
+const DEFAULT_CSV_CHECKED = ['project', 'scene', 'take', 'tracknames', 'note'];
+const DEFAULT_CSV_ORDER = [
+  ...DEFAULT_CSV_CHECKED,
+  ...CSV_FIELD_DEFS.map(f => f.id).filter(id => !DEFAULT_CSV_CHECKED.includes(id)),
+];
+
+// ============================================================
+// State
+// ============================================================
+//
+// All mutable application state lives in these two plain objects rather
+// than being scattered across closures, so it's easy to inspect from the
+// console (`state`, `transport`) while debugging.
+
+const state = {
+  dirHandle: null,     // the FileSystemDirectoryHandle the user picked
+  takes: [],           // every take found by the last scan (see scanAndGroup)
+  selectedKey: null,    // take.key of the take currently shown in the detail panel
+  filters: {            // Header dropdown filters — empty string means "show all"
+    project: '',
+    scene: '',
+  },
+  csv: {                 // Current CSV export configuration (edited via the modal)
+    order: [...DEFAULT_CSV_ORDER],       // column ids, left-to-right export order
+    checked: new Set(DEFAULT_CSV_CHECKED), // which of those ids are actually exported
+  },
+};
+
+// ============================================================
+// Audio transport (synced multi-mono playback for a take)
+// ============================================================
+//
+// Plays every file in a take together, in sync, using the Web Audio API
+// rather than a plain <audio> element — this is what makes scrubbing a
+// multi-file polyphonic take (or a multi-channel interleaved file) behave
+// as one unit instead of N independently-seeking players.
+//
+// The core trick (playFrom / pauseTransport / tick): Web Audio
+// BufferSourceNodes can't be paused or seeked once started, only stopped.
+// So "pause" really means "remember how far we'd gotten, then stop all
+// sources", and "seek" means "stop everything, remember the new position,
+// and — if we were playing — immediately start new sources from there".
+// `transport.startCtxTime` / `transport.startOffset` together let us
+// compute the current playhead position at any moment as
+// `startOffset + (audioContext.currentTime - startCtxTime)`.
+
+const transport = {
+  ctx: null,
+  buffers: [],
+  trackGains: [],   // trackGains[fileIndex] = [GainNode, ...] one per audio channel
+  trackAnalysers: [], // trackAnalysers[fileIndex] = [AnalyserNode, ...] one per audio channel
+  sources: [],
+  duration: 0,
+  startCtxTime: 0,
+  startOffset: 0,
+  playing: false,
+  rafId: null,
+  loadedForKey: null,
+};
+
+/** Get (creating on first use) the single shared AudioContext. Browsers require this to be created/resumed from a user gesture, which is satisfied here since it's only ever called from a button click handler. */
+function ensureCtx(){
+  transport.ctx = transport.ctx || new (window.AudioContext || window.webkitAudioContext)();
+  return transport.ctx;
+}
+
+/** Decode every file in a take into an AudioBuffer, ready for synced playback. Also (re)initializes each file's channelMuted array to match its actual decoded channel count — which is the source of truth, even if it disagrees with what iXML's TRACK_COUNT claims. */
+async function loadTakeAudio(take){
+  const ctx = ensureCtx();
+  stopTransport();
+  transport.buffers = [];
+  for (const f of take.files){
+    const arrBuf = await f.file.arrayBuffer();
+    const audioBuf = await ctx.decodeAudioData(arrBuf.slice(0));
+    transport.buffers.push(audioBuf);
+    // channelMuted is keyed by the file's actual decoded channel count, which is
+    // authoritative even if it disagrees with iXML's TRACK_COUNT.
+    if (f.channelMuted.length !== audioBuf.numberOfChannels){
+      f.channelMuted = new Array(audioBuf.numberOfChannels).fill(false);
+    }
+  }
+  transport.duration = transport.buffers.length ? Math.max(...transport.buffers.map(b => b.duration)) : 0;
+  transport.startOffset = 0;
+  transport.loadedForKey = take.key;
+  return transport.duration;
+}
+
+/** Human-readable label for a decoded audio channel: the matching iXML track name if there is one, otherwise a generic "Ch N" fallback (e.g. for a channel the recorder didn't label, or a mismatch between TRACK_COUNT and the actual audio). */
+function trackLabel(file, channelIndex){
+  // iXML CHANNEL_INDEX is usually 1-based and may not start at 1 (e.g. 3,4,5
+  // for a file recorded on inputs 3-5), so match by position among this
+  // file's listed tracks first, then fall back to a generic channel label.
+  const track = file.tracks[channelIndex];
+  if (track && track.name) return track.name;
+  return `Ch ${channelIndex + 1}`;
+}
+
+/** Hard-stop all currently playing sources without saving playhead position (used when switching takes or tearing down). For pausing in place, use pauseTransport() instead. */
+function stopTransport(){
+  transport.sources.forEach(s => { try{ s.stop(); }catch(e){} });
+  transport.sources = [];
+  transport.gains = [];
+  transport.playing = false;
+  if (transport.rafId) cancelAnimationFrame(transport.rafId);
+}
+
+/**
+ * Start (or restart, e.g. after a seek) playback of every decoded buffer
+ * in the take from `offsetSeconds`, all beginning at the same
+ * AudioContext time so they stay in sync.
+ *
+ * Multi-channel files (the common polyphonic case) are routed through a
+ * ChannelSplitterNode so each channel gets its own GainNode — that's what
+ * lets renderChannelMonitor mute one track (say, the boom) without
+ * affecting the others in the same physical file.
+ */
+function playFrom(offsetSeconds, take){
+  const ctx = ensureCtx();
+  transport.sources.forEach(s => { try{ s.stop(); }catch(e){} });
+  transport.sources = [];
+  transport.trackGains = [];
+  transport.trackAnalysers = [];
+  const now = ctx.currentTime;
+  transport.buffers.forEach((buf, i) => {
+    const file = take.files[i];
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const fileGains = [];
+    const fileAnalysers = [];
+    if (buf.numberOfChannels > 1){
+      const splitter = ctx.createChannelSplitter(buf.numberOfChannels);
+      src.connect(splitter);
+      for (let c = 0; c < buf.numberOfChannels; c++){
+        const gain = ctx.createGain();
+        gain.gain.value = file.channelMuted[c] ? 0 : 1;
+        splitter.connect(gain, c);
+
+        // Meter the signal after the per-channel monitor gain, so the dB readout
+        // follows the exact signal being sent to the output (including mute).
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 1024;
+        analyser.smoothingTimeConstant = 0.65;
+        gain.connect(analyser);
+        analyser.connect(ctx.destination);
+        fileGains.push(gain);
+        fileAnalysers.push(analyser);
+      }
+    } else {
+      const gain = ctx.createGain();
+      gain.gain.value = file.channelMuted[0] ? 0 : 1;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 1.0;
+      src.connect(gain);
+      gain.connect(analyser);
+      analyser.connect(ctx.destination);
+      fileGains.push(gain);
+      fileAnalysers.push(analyser);
+    }
+    const startAt = Math.min(offsetSeconds, buf.duration);
+    src.start(now, startAt);
+    transport.sources.push(src);
+    transport.trackGains.push(fileGains);
+    transport.trackAnalysers.push(fileAnalysers);
+  });
+  transport.startCtxTime = now;
+  transport.startOffset = offsetSeconds;
+  transport.playing = true;
+  tick(take);
+}
+
+/** Stop playback in place: records the current playhead position (so the next playFrom resumes from here) before stopping the underlying sources. */
+function pauseTransport(){
+  if (!transport.playing) { return; }
+  const elapsed = transport.ctx.currentTime - transport.startCtxTime;
+  transport.startOffset = transport.startOffset + elapsed;
+  transport.sources.forEach(s => { try{ s.stop(); }catch(e){} });
+  transport.sources = [];
+  transport.playing = false;
+  if (transport.rafId) cancelAnimationFrame(transport.rafId);
+  resetTrackMeters();
+}
+
+/** requestAnimationFrame loop that advances the scrub bar / time readout while playing, and auto-pauses at the end of the take. */
+function tick(take){
+  if (!transport.playing) return;
+  const elapsed = transport.ctx.currentTime - transport.startCtxTime;
+  const pos = transport.startOffset + elapsed;
+  if (pos >= transport.duration){
+    pauseTransport();
+    updateTransportUI(transport.duration);
+    return;
+  }
+  updateTransportUI(pos);
+  updateTrackMeters();
+  transport.rafId = requestAnimationFrame(() => tick(take));
+}
+
+function updateTrackMeters(){
+  const analysers = transport.trackAnalysers.flat();
+  if (!analysers.length) return;
+
+  analysers.forEach((analyser, index) => {
+    const dbEl = document.querySelector(`.track-meter-db[data-meter-index="${index}"]`);
+    const fillEl = document.querySelector(`.track-meter-fill[data-meter-index="${index}"]`);
+    if (!dbEl || !fillEl) return;
+
+    const data = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(data);
+
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+    const rms = Math.sqrt(sum / data.length);
+    const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+
+    // Meter range: -60 dBFS to 0 dBFS. Clip above 0 for display.
+    const clamped = Math.max(-60, Math.min(0, db));
+    const pct = ((clamped + 60) / 60) * 100;
+    fillEl.style.width = `${pct}%`;
+    dbEl.textContent = Number.isFinite(db) ? `${db.toFixed(1)} dB` : '−∞ dB';
+    console.log(rms, clamped, pct)
+
+  });
+}
+
+function resetTrackMeters(){
+  document.querySelectorAll('.track-meter-fill').forEach(el => el.style.width = '0%');
+  document.querySelectorAll('.track-meter-db').forEach(el => el.textContent = '−∞ dB');
+}
+
+function fmtTime(s){
+  if (!isFinite(s)) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = (s - m * 60).toFixed(2).padStart(5, '0');
+  return `${String(m).padStart(2,'0')}:${sec}`;
+}
+
+function updateTransportUI(pos){
+  const scrub = document.getElementById('scrub');
+  const timeEl = document.getElementById('timeReadout');
+  if (scrub) scrub.value = transport.duration ? (pos / transport.duration) * 1000 : 0;
+  if (timeEl) timeEl.textContent = `${fmtTime(pos)} / ${fmtTime(transport.duration)}`;
+}
+
+// ============================================================
+// Filtering (Project / Scene dropdowns in the header)
+// ============================================================
+
+/** Does this take pass the currently selected Project/Scene filters? Empty filter values mean "any". */
+function takeMatchesFilters(t){
+  if (state.filters.project && t.project !== state.filters.project) return false;
+  if (state.filters.scene && t.scene !== state.filters.scene) return false;
+  return true;
+}
+
+/** The subset of state.takes to actually display and export, after applying the header filters. */
+function getFilteredTakes(){
+  return state.takes.filter(takeMatchesFilters);
+}
+
+/** Rebuild the Project/Scene <select> options from whatever values exist in the current scan, preserving the current selection if it's still valid. */
+function populateFilterOptions(){
+  const projectSel = document.getElementById('filterProject');
+  const sceneSel = document.getElementById('filterScene');
+  const projects = Array.from(new Set(state.takes.map(t => t.project).filter(Boolean))).sort();
+  const scenes = Array.from(new Set(state.takes.map(t => t.scene).filter(Boolean))).sort();
+
+  const fillSelect = (sel, values, currentValue) => {
+    sel.innerHTML = '<option value="">All</option>' +
+      values.map(v => `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
+    sel.value = values.includes(currentValue) ? currentValue : '';
+  };
+  fillSelect(projectSel, projects, state.filters.project);
+  fillSelect(sceneSel, scenes, state.filters.scene);
+  state.filters.project = projectSel.value;
+  state.filters.scene = sceneSel.value;
+
+  const hasAnyTakes = state.takes.length > 0;
+  projectSel.disabled = !hasAnyTakes;
+  sceneSel.disabled = !hasAnyTakes;
+}
+
+/** Called whenever a filter dropdown changes: re-render the list/detail, and drop the current selection if it no longer matches. */
+function onFilterChange(){
+  const take = currentTake();
+  if (take && !takeMatchesFilters(take)){
+    state.selectedKey = null;
+    pauseTransport();
+  }
+  renderTakeList();
+  renderDetail();
+}
+
+// ============================================================
+// Rendering
+// ============================================================
+
+function currentTake(){
+  return state.takes.find(t => t.key === state.selectedKey) || null;
+}
+
+/** Render the left-hand take list from the currently *filtered* set of takes (see getFilteredTakes). */
+function renderTakeList(){
+  const el = document.getElementById('takeList');
+  const takes = getFilteredTakes();
+  if (!state.takes.length){
+    el.innerHTML = '<div class="empty">No .wav files found under the selected folder.</div>';
+    return;
+  }
+  if (!takes.length){
+    el.innerHTML = '<div class="empty">No takes match the current Project/Scene filter.</div>';
+    return;
+  }
+  el.innerHTML = takes.map(t => {
+    const slate = `${t.scene || '—'} <b>/ T${t.take || '—'}</b>`;
+    const flagged = t.files.some(f => !f.hasIXML);
+    return `
+      <div class="take-row ${t.key === state.selectedKey ? 'selected' : ''}" data-key="${encodeURIComponent(t.key)}">
+        <div class="top">
+          <span class="slate">${t.circled ? '<span class="circle-dot"></span>' : ''}${slate}</span>
+          <span class="meta">${t.files.length} file${t.files.length>1?'s':''}</span>
+        </div>
+        <div class="meta">${t.project || 'No project'} ${t.tape ? '· ' + t.tape : ''}</div>
+        ${flagged ? '<div class="no-ixml-flag">No iXML on 1+ files</div>' : ''}
+      </div>`;
+  }).join('');
+  el.querySelectorAll('.take-row').forEach(row => {
+    row.addEventListener('click', () => {
+      state.selectedKey = decodeURIComponent(row.dataset.key);
+      pauseTransport();
+      renderTakeList();
+      renderDetail();
+    });
+  });
+}
+
+function renderDetail(){
+  const el = document.getElementById('detail');
+  const take = currentTake();
+  if (!take){
+    el.innerHTML = '<div class="placeholder">Select a take on the left once a folder is loaded.</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="slate-header">
+      <div class="slate-field"><div class="label">Scene</div><div class="readout">${escapeHtml(take.scene) || '—'}</div></div>
+      <div class="slate-field"><div class="label">Take</div><div class="readout">${escapeHtml(take.take) || '—'}</div></div>
+      <div class="slate-field small"><div class="label">Circled</div><div class="readout" style="color:${take.circled ? 'var(--green)' : 'var(--text-dim)'}">${take.circled ? 'YES' : 'no'}</div></div>
+      <div class="slate-field small"><div class="label">Files</div><div class="readout">${take.files.length}</div></div>
+      ${take.familyUID ? `<div class="slate-field small"><div class="label">Family UID</div><div class="readout" style="font-size:12px;color:var(--text-dim)">${escapeHtml(take.familyUID.slice(0,18))}</div></div>` : ''}
+    </div>
+
+    <form class="meta-form" id="metaForm">
+      <div class="field"><label>Project</label><input type="text" name="project" value="${escapeAttr(take.project)}"></div>
+      <div class="field"><label>Tape</label><input type="text" name="tape" value="${escapeAttr(take.tape)}"></div>
+      <div class="field"><label>Scene</label><input type="text" name="scene" value="${escapeAttr(take.scene)}"></div>
+      <div class="field"><label>Take</label><input type="text" name="take" value="${escapeAttr(take.take)}"></div>
+      <div class="field full"><label>Note</label><textarea name="note">${escapeHtml(take.note)}</textarea></div>
+      <div class="checkbox-row"><input type="checkbox" name="circled" id="circledBox" ${take.circled ? 'checked' : ''}><label for="circledBox" style="text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.08em;font-size:12px;color:var(--text)">Circled take</label></div>
+    </form>
+
+    <table class="file-table">
+      <thead><tr><th>File</th><th>Tracks (channels)</th><th>iXML</th></tr></thead>
+      <tbody>
+        ${take.files.map((f) => `
+          <tr>
+            <td class="mono">${escapeHtml(f.path)}</td>
+            <td>${f.tracks.length ? f.tracks.map(t => escapeHtml(t.name || `Ch ${t.channelIndex ?? '?'}`)).join(', ') : '<span class="mono">—</span>'}</td>
+            <td>${f.hasIXML ? '<span style="color:var(--green)">present</span>' : '<span style="color:var(--red)">missing — will create</span>'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="transport">
+      <div class="row" style="margin-bottom:10px;">
+        <button class="btn" id="loadBtn">Load Audio</button>
+        <button class="btn" id="playBtn" disabled>▶ Play</button>
+        <button class="btn" id="pauseBtn" disabled>Pause</button>
+        <div class="spacer"></div>
+        <span class="time" id="timeReadout">00:00.00 / 00:00.00</span>
+      </div>
+      <div class="row">
+        <input type="range" id="scrub" min="0" max="1000" value="0" step="1" disabled>
+      </div>
+      <div id="channelMonitor"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="saveBtn">Save iXML to ${take.files.length} file${take.files.length>1?'s':''}</button>
+      <span id="saveStatus"></span>
+    </div>
+  `;
+
+  // transport wiring
+  const loadBtn = document.getElementById('loadBtn');
+  const playBtn = document.getElementById('playBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const scrub = document.getElementById('scrub');
+
+  loadBtn.addEventListener('click', async () => {
+    loadBtn.disabled = true;
+    loadBtn.textContent = 'Decoding…';
+    try {
+      const dur = await loadTakeAudio(take);
+      updateTransportUI(0);
+      playBtn.disabled = false;
+      scrub.disabled = false;
+      loadBtn.textContent = 'Reload Audio';
+      renderChannelMonitor(take);
+    } catch(e){
+      setStatus('Could not decode audio: ' + e.message, true);
+    } finally {
+      loadBtn.disabled = false;
+    }
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (transport.loadedForKey !== take.key) return;
+    const startPos = transport.duration ? (scrub.value/1000) * transport.duration : 0;
+    playFrom(startPos, take);
+    pauseBtn.disabled = false;
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    pauseTransport();
+  });
+
+  scrub.addEventListener('input', () => {
+    if (transport.loadedForKey !== take.key) return;
+    const pos = (scrub.value/1000) * transport.duration;
+    const wasPlaying = transport.playing;
+    pauseTransport();
+    transport.startOffset = pos;
+    updateTransportUI(pos);
+    if (wasPlaying) playFrom(pos, take);
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', () => saveTake(take));
+}
+
+/**
+ * Render the per-channel mute/unmute controls for the currently loaded
+ * take, once its audio has been decoded (see loadTakeAudio). One button
+ * per actual audio channel across all files in the take — for a typical
+ * Zoom polyphonic file that's one button per track (BOOM / MIC A / MIC B),
+ * laid out horizontally as large tappable icon buttons rather than a
+ * cramped vertical checkbox list. Muting here is playback-only monitoring;
+ * it is never written back to disk.
+ */
+function renderChannelMonitor(take){
+  const el = document.getElementById('channelMonitor');
+  if (!el) return;
+  const rows = [];
+  let meterIndex = 0;
+  take.files.forEach((f, fi) => {
+    const nCh = f.channelMuted.length;
+    for (let c = 0; c < nCh; c++){
+      rows.push({ fi, c, meterIndex, label: trackLabel(f, c), fileName: f.name, muted: f.channelMuted[c] });
+      meterIndex++;
+    }
+  });
+  if (!rows.length){ el.innerHTML = ''; return; }
+
+  //TODO - Modify Buttons here with per track gain information
+  el.innerHTML = `
+    <div class="label" style="margin:14px 0 8px;">Channel monitor (mute for playback only — not saved)</div>
+    <div class="channel-monitor-row">
+      ${rows.map(r => `
+        <button type="button" class="track-toggle ${r.muted ? 'muted' : ''}" data-fi="${r.fi}" data-c="${r.c}" title="${escapeAttr(r.fileName)}" aria-pressed="${r.muted}">
+          <span class="track-toggle-icon">${r.muted ? MUTED_ICON_SVG : SPEAKER_ICON_SVG}</span>
+          <span class="track-toggle-label">${escapeHtml(r.label)}</span>
+          <span class="track-meter">
+            <span class="track-meter-bar"><span class="track-meter-fill" data-meter-index="${r.meterIndex}"></span></span>
+            <span class="track-meter-db" data-meter-index="${r.meterIndex}">−∞ dB</span>
+          </span>
+        </button>`).join('')}
+    </div>`;
+  el.querySelectorAll('.track-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fi = Number(btn.dataset.fi);
+      const c = Number(btn.dataset.c);
+      const file = take.files[fi];
+      const muted = !file.channelMuted[c];
+      file.channelMuted[c] = muted;
+      // Update just this button in place (icon + styling) rather than
+      // re-rendering the whole panel, so other buttons don't flicker.
+      btn.classList.toggle('muted', muted);
+      btn.setAttribute('aria-pressed', String(muted));
+      btn.querySelector('.track-toggle-icon').innerHTML = muted ? MUTED_ICON_SVG : SPEAKER_ICON_SVG;
+      // If audio is currently playing, apply the mute live to the running gain node.
+      if (transport.trackGains[fi] && transport.trackGains[fi][c]){
+        transport.trackGains[fi][c].gain.value = muted ? 0 : 1;
+      }
+    });
+  });
+}
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+function escapeAttr(s){
+  return escapeHtml(s).replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// Save
+// ============================================================
+
+/**
+ * Write the take-detail form's current values back into every member
+ * file's iXML chunk on disk (Project/Scene/Take/Tape/Note/Circled — the
+ * fields that are meant to be shared across a whole take, per the iXML
+ * spec). Re-reads each file fresh from its handle first rather than
+ * reusing any previously cached text, so this is safe to call even if the
+ * file changed on disk since the last scan.
+ */
+async function saveTake(take){
+  const form = document.getElementById('metaForm');
+  const fd = new FormData(form);
+  const values = {
+    project: fd.get('project') || '',
+    scene: fd.get('scene') || '',
+    take: fd.get('take') || '',
+    tape: fd.get('tape') || '',
+    note: fd.get('note') || '',
+    circled: form.circled.checked,
+  };
+  const statusEl = document.getElementById('saveStatus');
+  statusEl.className = '';
+  statusEl.textContent = 'Saving…';
+
+  try {
+    for (const f of take.files){
+      const freshFile = await f.handle.getFile();
+      const { text, chunk } = await extractIXMLTextLazy(freshFile);
+      let doc = text ? parseIXMLDoc(text) : null;
+      if (!doc) doc = makeEmptyIXMLDoc();
+      setTag(doc, 'PROJECT', values.project);
+      setTag(doc, 'SCENE', values.scene);
+      setTag(doc, 'TAKE', values.take);
+      setTag(doc, 'TAPE', values.tape);
+      setTag(doc, 'NOTE', values.note);
+      setTag(doc, 'CIRCLED', values.circled ? 'TRUE' : 'FALSE');
+      const xmlString = serializeDoc(doc);
+      await writeIXMLToFile(f.handle, freshFile, xmlString, chunk);
+      f.file = await f.handle.getFile();
+      f.hasIXML = true;
+    }
+    Object.assign(take, values);
+    statusEl.textContent = `Saved at ${new Date().toLocaleTimeString()}`;
+    statusEl.className = 'ok';
+    renderTakeList();
+  } catch(e){
+    statusEl.textContent = 'Save failed: ' + e.message;
+    statusEl.className = 'err';
+  }
+}
+
+// ============================================================
+// CSV export (sound report) — configurable field chooser
+// ============================================================
+
+/** Escape a single CSV value: wrap in quotes and double up any internal quotes if it contains a comma, quote, or newline. */
+function csvEscape(v){
+  v = String(v ?? '');
+  if (/[",\r\n]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+
+/**
+ * Render the field list inside the CSV modal from state.csv.order /
+ * state.csv.checked. Every row shows a checkbox (include in export?) and
+ * up/down buttons that reorder state.csv.order directly, then re-render —
+ * so the on-screen order always matches the export order.
+ */
+function renderCsvModal(){
+  const list = document.getElementById('csvFieldList');
+  list.innerHTML = state.csv.order.map((id, idx) => {
+    const def = CSV_FIELD_MAP[id];
+    const checked = state.csv.checked.has(id);
+    return `
+      <div class="csv-field-row">
+        <input type="checkbox" class="csv-check" data-id="${id}" ${checked ? 'checked' : ''}>
+        <span class="csv-field-label">${escapeHtml(def.label)}</span>
+        <div class="csv-order-btns">
+          <button type="button" class="btn tiny" data-move="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} title="Move up">▲</button>
+          <button type="button" class="btn tiny" data-move="down" data-idx="${idx}" ${idx === state.csv.order.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.csv-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) state.csv.checked.add(cb.dataset.id);
+      else state.csv.checked.delete(cb.dataset.id);
+    });
+  });
+  list.querySelectorAll('[data-move]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.idx);
+      const newIdx = idx + (btn.dataset.move === 'up' ? -1 : 1);
+      if (newIdx < 0 || newIdx >= state.csv.order.length) return;
+      const arr = state.csv.order;
+      [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+      renderCsvModal(); // re-render so button disabled-states and positions update
+    });
+  });
+}
+
+function openCsvModal(){
+  renderCsvModal();
+  document.getElementById('csvModalOverlay').style.display = 'flex';
+}
+
+function closeCsvModal(){
+  document.getElementById('csvModalOverlay').style.display = 'none';
+}
+
+/**
+ * Build and download the CSV sound report using whatever columns are
+ * currently checked in state.csv, in state.csv.order's order, for whatever
+ * takes currently pass the header's Project/Scene filters (see
+ * getFilteredTakes) — so exporting after filtering to one scene exports
+ * just that scene.
+ */
+function exportCSV(){
+  const fields = state.csv.order
+    .filter(id => state.csv.checked.has(id))
+    .map(id => CSV_FIELD_MAP[id]);
+  if (!fields.length){
+    setStatus('Select at least one column before exporting.', true);
+    return;
+  }
+  const takes = getFilteredTakes();
+  const headers = fields.map(f => f.label);
+  const rows = [headers, ...takes.map(t => fields.map(f => f.get(t)))];
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sound_report.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  setStatus(`Exported ${takes.length} take${takes.length === 1 ? '' : 's'} to sound_report.csv`);
+}
+
+// ============================================================
+// Wiring: folder open / rescan
+// ============================================================
+
+/** Show a message in the footer status bar. Pass isErr=true to color it red. */
+function setStatus(msg, isErr){
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.style.color = isErr ? 'var(--red)' : 'var(--text-dim)';
+}
+
+/** "Open Folder" button handler: prompts for a directory (read/write access) and kicks off the first scan. Resets any active Project/Scene filters, since they belong to the previous folder's data. */
+async function openFolder(){
+  if (!window.showDirectoryPicker){
+    setStatus('This browser does not support the File System Access API. Use a Chromium-based browser (Chrome or Edge).', true);
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    state.dirHandle = handle;
+    state.filters = { project: '', scene: '' };
+    document.getElementById('folderPath').textContent = handle.name;
+    document.getElementById('rescanBtn').disabled = false;
+    await rescan();
+  } catch(e){
+    if (e.name !== 'AbortError') setStatus('Could not open folder: ' + e.message, true);
+  }
+}
+
+/** Re-walk the currently open folder and rebuild state.takes, the take list, the filter dropdowns, and the detail panel. Safe to call repeatedly (e.g. after editing files elsewhere, or after Save). */
+async function rescan(){
+  if (!state.dirHandle) return;
+  setStatus('Scanning…');
+  stopTransport();
+  state.selectedKey = null;
+  document.getElementById('exportBtn').disabled = true;
+  try {
+    state.takes = await scanAndGroup(state.dirHandle, (done, total) => {
+      setStatus(`Scanning… ${done}/${total} files`);
+    });
+    state.takes.sort((a,b) => (a.scene+a.take).localeCompare(b.scene+b.take));
+    populateFilterOptions();
+    renderTakeList();
+    renderDetail();
+    document.getElementById('exportBtn').disabled = state.takes.length === 0;
+    setStatus(`Loaded ${state.takes.length} take${state.takes.length===1?'':'s'} from ${state.takes.reduce((n,t)=>n+t.files.length,0)} files.`);
+  } catch(e){
+    setStatus('Scan failed: ' + e.message, true);
+  }
+}
+
+document.getElementById('openFolderBtn').addEventListener('click', openFolder);
+document.getElementById('rescanBtn').addEventListener('click', rescan);
+document.getElementById('exportBtn').addEventListener('click', openCsvModal);
+
+document.getElementById('filterProject').addEventListener('change', (e) => {
+  state.filters.project = e.target.value;
+  onFilterChange();
+});
+document.getElementById('filterScene').addEventListener('change', (e) => {
+  state.filters.scene = e.target.value;
+  onFilterChange();
+});
+
+document.getElementById('csvModalClose').addEventListener('click', closeCsvModal);
+document.getElementById('csvCancelBtn').addEventListener('click', closeCsvModal);
+document.getElementById('csvResetBtn').addEventListener('click', () => {
+  state.csv.order = [...DEFAULT_CSV_ORDER];
+  state.csv.checked = new Set(DEFAULT_CSV_CHECKED);
+  renderCsvModal();
+});
+document.getElementById('csvConfirmExportBtn').addEventListener('click', () => {
+  exportCSV();
+  closeCsvModal();
+});
+</script>
+</body>
+</html>
